@@ -217,8 +217,9 @@ fun App() {
 
     /** Opens the system Wireless debugging page so the pairing dialog is one tap away. */
     fun openWirelessDebugging() {
+        // "android.settings.WIRELESS_DEBUGGING_SETTINGS" (Settings constant is API 35+)
         val action = if (Build.VERSION.SDK_INT >= 30)
-            Settings.ACTION_WIRELESS_DEBUGGING_SETTINGS
+            "android.settings.WIRELESS_DEBUGGING_SETTINGS"
         else
             Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
         runCatching { ctx.startActivity(Intent(action)) }
