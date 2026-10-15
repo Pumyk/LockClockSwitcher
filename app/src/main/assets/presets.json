@@ -1,0 +1,5 @@
+[
+  { "name": "Classic Max (default)", "style": 21, "templateId": "classic_max" },
+  { "name": "Oversize A", "style": 2, "templateId": "oversize_a" },
+  { "name": "Oversize B", "style": 2, "templateId": "oversize_b" }
+]
