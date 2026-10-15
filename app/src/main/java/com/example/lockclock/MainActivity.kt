@@ -23,13 +23,22 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -41,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -138,6 +148,80 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Launch splash: icon springs in, gradient title rises, accent line sweeps, curtain fades out. */
+@Composable
+private fun SplashScreen(onFinish: () -> Unit) {
+    val iconScale = remember { Animatable(0.55f) }
+    val iconAlpha = remember { Animatable(0f) }
+    val titleAlpha = remember { Animatable(0f) }
+    val titleRise = remember { Animatable(30f) }
+    val lineFill = remember { Animatable(0f) }
+    val curtain = remember { Animatable(1f) }
+
+    LaunchedEffect(Unit) {
+        launch { iconAlpha.animateTo(1f, tween(320, easing = FastOutSlowInEasing)) }
+        launch { iconScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 380f)) }
+        launch {
+            delay(280)
+            launch { titleAlpha.animateTo(1f, tween(420, easing = FastOutSlowInEasing)) }
+            titleRise.animateTo(0f, tween(480, easing = FastOutSlowInEasing))
+        }
+        launch {
+            delay(140)
+            lineFill.animateTo(1f, tween(1100, easing = LinearEasing))
+        }
+        delay(1500)
+        curtain.animateTo(0f, tween(400, easing = FastOutSlowInEasing))
+        onFinish()
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0908))
+            .alpha(curtain.value)
+    ) {
+        Column(
+            Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painterResource(R.mipmap.ic_launcher),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(88.dp)
+                    .scale(iconScale.value)
+                    .alpha(iconAlpha.value)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Lock Clock Switcher",
+                style = TextStyle(
+                    brush = Brush.linearGradient(listOf(Tangerine, Mustard)),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic
+                ),
+                modifier = Modifier
+                    .graphicsLayer { translationY = titleRise.value }
+                    .alpha(titleAlpha.value)
+            )
+        }
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 96.dp)
+                .fillMaxWidth(lineFill.value * 0.5f + 0.02f)
+                .height(3.dp)
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color.Transparent, Mustard, Color.Transparent)
+                    )
+                )
+        )
+    }
+}
+
 /** Looks for res/drawable-nodpi/<templateid>_<style>.png first, then <templateid>.png. */
 private fun previewRes(ctx: Context, p: ClockPreset): Int {
     // The APK's resource package (in resources.arsc) is named after the
@@ -200,6 +284,7 @@ fun App() {
     var cTemplate by remember { mutableStateOf("") }
     var pairPort by remember { mutableStateOf("") }
     var pairCode by remember { mutableStateOf("") }
+    var showSplash by remember { mutableStateOf(true) }
 
     fun refresh() { current = ClockSettings.read(ctx); granted = ClockSettings.canWrite(ctx) }
     fun report(r: Result<String>, ok: String) {
@@ -246,6 +331,8 @@ fun App() {
         finder.start()
         onDispose { finder.stop() }
     }
+
+    if (showSplash) SplashScreen { showSplash = false }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),

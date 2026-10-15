@@ -5,7 +5,7 @@
   { "name": "Oversize A · 1", "style": 1, "templateId": "oversize_a" },
   { "name": "Oversize A · 2", "style": 2, "templateId": "oversize_a" },
   { "name": "Oversize A · 3", "style": 3, "templateId": "oversize_a" },
-  { "name": "Oversize B", "style": 2, "templateId": "oversize_b" },
+  { "name": "Oversize B", "style": 1, "templateId": "oversize_b" },
   { "name": "Magazine A · Be Bolder", "style": 1, "templateId": "magazine_a" },
   { "name": "Magazine B · Floral Melody", "style": 1, "templateId": "magazine_b" },
   { "name": "Magazine C · 5", "style": 5, "templateId": "magazine_c" },
