@@ -138,14 +138,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Looks for res/drawable/preview_<templateid>_<style> first, then preview_<templateid>. */
+/** Looks for res/drawable-nodpi/<templateid>_<style>.png first, then <templateid>.png. */
 private fun previewRes(ctx: Context, p: ClockPreset): Int {
-    // Look up in the app's resource package (the namespace), so it keeps
-    // working when applicationId differs from the namespace.
-    val pkg = R::class.java.getPackage()?.name ?: ctx.packageName
+    // The APK's resource package (in resources.arsc) is named after the
+    // applicationId, so ctx.packageName is the correct defPackage here.
     val id = p.templateId.lowercase()
-    val a = ctx.resources.getIdentifier("preview_${id}_${p.style}", "drawable", pkg)
-    return if (a != 0) a else ctx.resources.getIdentifier("preview_$id", "drawable", pkg)
+    val a = ctx.resources.getIdentifier("${id}_${p.style}", "drawable", ctx.packageName)
+    return if (a != 0) a else ctx.resources.getIdentifier(id, "drawable", ctx.packageName)
 }
 
 @Composable
@@ -400,6 +399,21 @@ fun App() {
                             .height(190.dp),
                         contentScale = ContentScale.Fit
                     )
+                } else {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(190.dp)
+                            .clip(MaterialTheme.shapes.large)
+                            .background(Color(0xFF141311)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No preview",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
                 Text(p.name, style = MaterialTheme.typography.titleSmall, maxLines = 2)
                 Text(
