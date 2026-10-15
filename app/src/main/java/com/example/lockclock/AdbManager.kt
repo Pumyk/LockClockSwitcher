@@ -3,22 +3,12 @@ package com.example.lockclock
 import android.content.Context
 import android.os.Build
 import io.github.muntashirakon.adb.AbsAdbConnectionManager
-import android.sun.security.x509.AlgorithmId
-import android.sun.security.x509.CertificateAlgorithmId
-import android.sun.security.x509.CertificateExtensions
-import android.sun.security.x509.CertificateIssuerName
-import android.sun.security.x509.CertificateSerialNumber
-import android.sun.security.x509.CertificateSubjectName
-import android.sun.security.x509.CertificateValidity
-import android.sun.security.x509.CertificateVersion
-import android.sun.security.x509.CertificateX509Key
-import android.sun.security.x509.KeyIdentifier
-import android.sun.security.x509.PrivateKeyUsageExtension
-import android.sun.security.x509.SubjectKeyIdentifierExtension
-import android.sun.security.x509.X500Name
-import android.sun.security.x509.X509CertImpl
-import android.sun.security.x509.X509CertInfo
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.File
+import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.PrivateKey
@@ -27,7 +17,6 @@ import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Date
-import java.util.Random
 
 /**
  * Holds this app's ADB identity. The RSA key + certificate are generated once and kept in
@@ -53,35 +42,21 @@ class AdbManager private constructor(ctx: Context) : AbsAdbConnectionManager() {
         }
         if (k == null || c == null) {
             val kp = KeyPairGenerator.getInstance("RSA").apply {
-                initialize(2048, SecureRandom.getInstance("SHA1PRNG"))
+                initialize(2048, SecureRandom())
             }.generateKeyPair()
-            val pub = kp.public
-            val priv = kp.private
 
-            val algorithm = "SHA512withRSA"
             val notBefore = Date()
             val notAfter = Date(System.currentTimeMillis() + 10L * 365 * 24 * 3600 * 1000)
             val name = X500Name("CN=LockClockSwitcher")
+            val builder = JcaX509v3CertificateBuilder(
+                name, BigInteger.valueOf(System.currentTimeMillis()), notBefore, notAfter, name, kp.public
+            )
+            val signer = JcaContentSignerBuilder("SHA256withRSA").build(kp.private)
+            val x509 = JcaX509CertificateConverter().getCertificate(builder.build(signer))
 
-            val ext = CertificateExtensions()
-            ext.set("SubjectKeyIdentifier", SubjectKeyIdentifierExtension(KeyIdentifier(pub).identifier))
-            ext.set("PrivateKeyUsage", PrivateKeyUsageExtension(notBefore, notAfter))
-
-            val info = X509CertInfo()
-            info.set("version", CertificateVersion(2))
-            info.set("serialNumber", CertificateSerialNumber(Random().nextInt() and Int.MAX_VALUE))
-            info.set("algorithmID", CertificateAlgorithmId(AlgorithmId.get(algorithm)))
-            info.set("subject", CertificateSubjectName(name))
-            info.set("key", CertificateX509Key(pub))
-            info.set("validity", CertificateValidity(notBefore, notAfter))
-            info.set("issuer", CertificateIssuerName(name))
-            info.set("extensions", ext)
-            val x509 = X509CertImpl(info)
-            x509.sign(priv, algorithm)
-
-            k = priv
+            k = kp.private
             c = x509
-            keyFile.writeBytes(priv.encoded)
+            keyFile.writeBytes(kp.private.encoded)
             certFile.writeBytes(x509.encoded)
         }
         key = k!!
