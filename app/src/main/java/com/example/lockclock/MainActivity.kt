@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -17,8 +19,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
@@ -41,7 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val ADB_CMD =
-    "adb shell pm grant com.example.lockclock android.permission.WRITE_SECURE_SETTINGS"
+    "adb shell pm grant com.pumyk.lockclockswitcher android.permission.WRITE_SECURE_SETTINGS"
 
 // ---------------------------------------------------------------------------
 // AMOLED-black expressive theme, palette pulled from the "19 AG" key art:
@@ -172,6 +176,15 @@ private fun StatusPill(granted: Boolean) {
 }
 
 @Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
 fun App() {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -202,14 +215,26 @@ fun App() {
         }
     }
 
+    /** Opens the system Wireless debugging page so the pairing dialog is one tap away. */
+    fun openWirelessDebugging() {
+        val action = if (Build.VERSION.SDK_INT >= 30)
+            Settings.ACTION_WIRELESS_DEBUGGING_SETTINGS
+        else
+            Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+        runCatching { ctx.startActivity(Intent(action)) }
+            .onFailure { runCatching { ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) } }
+    }
+
     val notifPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) PairingService.start(ctx)
     }
     fun startPairingNotification() {
+        // Both at once: bring up the notification AND jump to Wireless debugging.
         if (Build.VERSION.SDK_INT >= 33 &&
             ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
         else PairingService.start(ctx)
+        openWirelessDebugging()
     }
 
     // Auto-fill the pairing port while the "Pair with pairing code" dialog is open.
@@ -219,17 +244,19 @@ fun App() {
         onDispose { finder.stop() }
     }
 
-    LazyColumn(
-        Modifier
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp)
     ) {
         // ---------- Hero ----------
-        item {
+        item(span = { GridItemSpan(2) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("LOCK CLOCK", style = MaterialTheme.typography.displayMedium)
                 Text(
@@ -247,7 +274,7 @@ fun App() {
         }
 
         // ---------- Permission / wireless debugging ----------
-        if (!granted) item {
+        if (!granted) item(span = { GridItemSpan(2) }) {
             Column(Modifier.amoledCard().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Grant WRITE_SECURE_SETTINGS", style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -256,8 +283,8 @@ fun App() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "1. Connect to Wi-Fi, then enable Developer options → Wireless debugging.\n" +
-                        "2. Tap \"Start pairing notification\", then open \"Pair device with pairing code\".\n" +
+                    "1. Tap \"Start pairing notification\" — it also opens Wireless debugging.\n" +
+                        "2. On that page, open \"Pair device with pairing code\".\n" +
                         "3. Reply to this app's notification with the 6-digit code — no split screen needed.\n" +
                         "(Manual fallback: the port fills in below; split screen works too.)",
                     style = MaterialTheme.typography.bodySmall,
@@ -316,14 +343,16 @@ fun App() {
         }
 
         // ---------- Current value ----------
-        item {
+        item(span = { GridItemSpan(2) }) {
             Column(Modifier.amoledCard().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Current value", style = MaterialTheme.typography.titleSmall)
                 SelectionContainer {
                     Text(
                         current ?: "(key not found)",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 4,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -337,7 +366,8 @@ fun App() {
             }
         }
 
-        if (status.isNotEmpty()) item {
+        // ---------- Status banner ----------
+        if (status.isNotEmpty()) item(span = { GridItemSpan(2) }) {
             Row(
                 Modifier
                     .clip(PillShape)
@@ -353,8 +383,9 @@ fun App() {
         }
 
         // ---------- Presets (from assets/presets.json) ----------
-        items(presets) { p ->
-            Column(Modifier.amoledCard().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item(span = { GridItemSpan(2) }) { SectionLabel("Presets") }
+        items(presets, key = { "${it.templateId}:${it.style}" }) { p ->
+            Column(Modifier.amoledCard().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val res = remember(p) { previewRes(ctx, p) }
                 if (res != 0) {
                     Image(
@@ -362,30 +393,31 @@ fun App() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(MaterialTheme.shapes.large)
-                            .height(220.dp),
+                            .height(190.dp),
                         contentScale = ContentScale.Fit
                     )
                 }
-                Text(p.name, style = MaterialTheme.typography.titleMedium)
+                Text(p.name, style = MaterialTheme.typography.titleSmall, maxLines = 2)
                 Text(
-                    "style:${p.style}  ·  templateid:${p.templateId}",
-                    style = MaterialTheme.typography.bodySmall,
+                    "style: ${p.style} · ${p.templateId}",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
                     enabled = granted,
                     onClick = { report(ClockSettings.apply(ctx, p.style, p.templateId), "Applied ${p.name}. Lock your phone to check.") },
                     shape = PillShape,
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Mustard, contentColor = Color(0xFF1C1900)
                     ),
-                    modifier = Modifier.align(Alignment.End)
-                ) { Text("Apply") }
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Apply", style = MaterialTheme.typography.labelLarge) }
             }
         }
 
         // ---------- Custom ----------
-        item {
+        item(span = { GridItemSpan(2) }) {
             Column(Modifier.amoledCard().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Custom", style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(cStyle, { cStyle = it.filter(Char::isDigit) }, label = { Text("style number") }, singleLine = true)

@@ -1,5 +1,22 @@
 [
   { "name": "Classic Max (default)", "style": 21, "templateId": "classic_max" },
-  { "name": "Oversize A", "style": 2, "templateId": "oversize_a" },
-  { "name": "Oversize B", "style": 2, "templateId": "oversize_b" }
+  { "name": "Doodle", "style": 1, "templateId": "doodle" },
+  { "name": "Depth Pets (HyperOS 3)", "style": 1, "templateId": "depth_pets" },
+  { "name": "Oversize A · 1", "style": 1, "templateId": "oversize_a" },
+  { "name": "Oversize A · 2", "style": 2, "templateId": "oversize_a" },
+  { "name": "Oversize A · 3", "style": 3, "templateId": "oversize_a" },
+  { "name": "Oversize B", "style": 2, "templateId": "oversize_b" },
+  { "name": "Magazine A · Be Bolder", "style": 1, "templateId": "magazine_a" },
+  { "name": "Magazine B · Floral Melody", "style": 1, "templateId": "magazine_b" },
+  { "name": "Magazine C · 5", "style": 5, "templateId": "magazine_c" },
+  { "name": "Magazine C · 6", "style": 6, "templateId": "magazine_c" },
+  { "name": "Magazine C · 7", "style": 7, "templateId": "magazine_c" },
+  { "name": "Magazine C · 8", "style": 8, "templateId": "magazine_c" },
+  { "name": "Magazine C · 9 (HyperOS 3)", "style": 9, "templateId": "magazine_c" },
+  { "name": "Eastern C", "style": 2, "templateId": "eastern_c" },
+  { "name": "Eastern A", "style": 2, "templateId": "eastern_a" },
+  { "name": "Pad Exclusive A · 1", "style": 1, "templateId": "pad_exclusive_a" },
+  { "name": "Pad Exclusive A · 2", "style": 2, "templateId": "pad_exclusive_a" },
+  { "name": "Pad Exclusive B", "style": 1, "templateId": "pad_exclusive_b" },
+  { "name": "Pad Exclusive C", "style": 2, "templateId": "pad_exclusive_c" }
 ]

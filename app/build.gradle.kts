@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.lockclock"
+        applicationId = "com.pumyk.lockclockswitcher"
         minSdk = 29
         targetSdk = 34
         versionCode = 1

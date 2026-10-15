@@ -4,7 +4,7 @@ import android.content.Context
 
 object AdbSetup {
     private const val GRANT =
-        "pm grant com.example.lockclock android.permission.WRITE_SECURE_SETTINGS"
+        "pm grant com.pumyk.lockclockswitcher android.permission.WRITE_SECURE_SETTINGS"
 
     /** Pairs with this phone's own Wireless debugging (pairing code dialog). */
     fun pair(ctx: Context, port: Int?, code: String): Result<String> = runCatching {
