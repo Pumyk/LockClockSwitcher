@@ -24,7 +24,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
-    packaging { resources.excludes += "META-INF/{AL2.0,LGPL2.1}" }
+    packaging { resources.excludes += listOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/versions/9/OSGI-INF/MANIFEST.MF") }
 }
 
 dependencies {
@@ -37,6 +37,7 @@ dependencies {
 
     // Wireless-debugging pairing / ADB client (all via JitPack)
     implementation("com.github.MuntashirAkon:libadb-android:3.1.0")
-    implementation("com.github.MuntashirAkon:sun-security-android:1.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("org.conscrypt:conscrypt-android:2.5.3")
 }
