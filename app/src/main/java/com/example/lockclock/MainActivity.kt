@@ -1,11 +1,16 @@
 package com.example.lockclock
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -76,6 +81,16 @@ fun App() {
         }
     }
 
+    val notifPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) PairingService.start(ctx)
+    }
+    fun startPairingNotification() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
+        else PairingService.start(ctx)
+    }
+
     // Auto-fill the pairing port while the "Pair with pairing code" dialog is open.
     DisposableEffect(Unit) {
         val finder = PairingPortFinder(ctx) { port -> if (port != null) pairPort = port.toString() }
@@ -101,11 +116,12 @@ fun App() {
                         Text("Grant it from this phone using Wireless debugging:", style = MaterialTheme.typography.bodyMedium)
                         Text(
                             "1. Connect to Wi-Fi, then enable Developer options → Wireless debugging.\n" +
-                                "2. Tap \"Pair device with pairing code\".\n" +
-                                "3. Open this app in split-screen or a floating window (the dialog closes if you leave it). " +
-                                "The port fills in by itself; type the 6-digit code and tap Pair & grant.",
+                                "2. Tap \"Start pairing notification\" below, then open \"Pair device with pairing code\".\n" +
+                                "3. Reply to this app notification with the 6-digit code — no split screen needed.\n" +
+                                "(Manual fallback: the port fills in below; split screen works too.)",
                             style = MaterialTheme.typography.bodySmall
                         )
+                        Button(onClick = { startPairingNotification() }) { Text("Start pairing notification") }
                         OutlinedTextField(
                             pairPort, { pairPort = it.filter(Char::isDigit) },
                             label = { Text("pairing port (auto-detected)") }, singleLine = true

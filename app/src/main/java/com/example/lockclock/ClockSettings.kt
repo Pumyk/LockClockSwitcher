@@ -8,7 +8,7 @@ import android.provider.Settings
 data class ClockPreset(val name: String, val style: Int, val templateId: String)
 
 object ClockSettings {
-    const val KEY = "constant_template_editor_info"
+    const val KEY = "constant_lockscreen_info"
     private const val PREFS = "backup"
 
     private val styleRegex = Regex("(?i)(?<![a-z])(style:)\\d+")
