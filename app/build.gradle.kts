@@ -12,11 +12,23 @@ android {
         applicationId = "com.pumyk.lockclockswitcher"
         minSdk = 29
         targetSdk = 34
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
     }
+    signingConfigs {
+        create("release") {
+            storeFile = System.getenv("RELEASE_KEYSTORE_FILE")?.let { file(it) }
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+        }
+    }
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = false
+            if (System.getenv("RELEASE_KEYSTORE_FILE") != null)
+                signingConfig = signingConfigs.getByName("release")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

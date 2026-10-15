@@ -140,9 +140,11 @@ class MainActivity : ComponentActivity() {
 
 /** Looks for res/drawable/preview_<templateid>_<style> first, then preview_<templateid>. */
 private fun previewRes(ctx: Context, p: ClockPreset): Int {
+    // Two-arg lookup searches the app's own resource package (the namespace),
+    // so it keeps working when applicationId differs from the namespace.
     val id = p.templateId.lowercase()
-    val a = ctx.resources.getIdentifier("preview_${id}_${p.style}", "drawable", ctx.packageName)
-    return if (a != 0) a else ctx.resources.getIdentifier("preview_$id", "drawable", ctx.packageName)
+    val a = ctx.resources.getIdentifier("preview_${id}_${p.style}", "drawable")
+    return if (a != 0) a else ctx.resources.getIdentifier("preview_$id", "drawable")
 }
 
 @Composable
