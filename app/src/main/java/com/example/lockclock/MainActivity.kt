@@ -142,7 +142,7 @@ class MainActivity : ComponentActivity() {
 private fun previewRes(ctx: Context, p: ClockPreset): Int {
     // Look up in the app's resource package (the namespace), so it keeps
     // working when applicationId differs from the namespace.
-    val pkg = R::class.java.package?.name ?: ctx.packageName
+    val pkg = R::class.java.getPackage()?.name ?: ctx.packageName
     val id = p.templateId.lowercase()
     val a = ctx.resources.getIdentifier("preview_${id}_${p.style}", "drawable", pkg)
     return if (a != 0) a else ctx.resources.getIdentifier("preview_$id", "drawable", pkg)
