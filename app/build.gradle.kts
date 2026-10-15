@@ -36,7 +36,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // Wireless-debugging pairing / ADB client (all via JitPack)
-    implementation("com.github.MuntashirAkon:libadb-android:3.1.0")
+    // JitPack metadata for this artifact is inconsistent: sometimes it declares
+    // bcprov-jdk15to18:1.81, sometimes bcprov-jdk18on:1.78.1. Exclude whatever
+    // BouncyCastle it transitively pulls - we provide a single copy below.
+    implementation("com.github.MuntashirAkon:libadb-android:3.1.0") {
+        exclude(group = "org.bouncycastle")
+    }
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("org.conscrypt:conscrypt-android:2.5.3")
