@@ -110,6 +110,7 @@ private val ExpressiveShapes = Shapes(
 
 private val PillShape = RoundedCornerShape(50)
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AmoledTheme(materialYou: Boolean, content: @Composable () -> Unit) {
     val base = Typography()
@@ -129,7 +130,7 @@ private fun AmoledTheme(materialYou: Boolean, content: @Composable () -> Unit) {
         colorScheme = scheme,
         shapes = ExpressiveShapes,
         typography = typography,
-        motionScheme = rememberExpressiveMotionScheme(),
+        // motionScheme omitted -> defaults to the expressive motion scheme
         content = content,
     )
 }
