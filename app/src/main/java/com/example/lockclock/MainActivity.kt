@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -110,7 +111,7 @@ private val ExpressiveShapes = Shapes(
 private val PillShape = RoundedCornerShape(50)
 
 @Composable
-private fun AmoledTheme(content: @Composable () -> Unit) {
+private fun AmoledTheme(materialYou: Boolean, content: @Composable () -> Unit) {
     val base = Typography()
     val typography = base.copy(
         displayMedium = base.displayMedium.copy(
@@ -120,10 +121,15 @@ private fun AmoledTheme(content: @Composable () -> Unit) {
         titleMedium = base.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
         titleSmall = base.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
     )
-    MaterialTheme(
-        colorScheme = AmoledScheme,
+    // Material You: dynamic color from wallpaper on Android 12+ when enabled.
+    val ctx = LocalContext.current
+    val scheme = if (materialYou && Build.VERSION.SDK_INT >= 31) dynamicDarkColorScheme(ctx)
+                 else AmoledScheme
+    MaterialExpressiveTheme(
+        colorScheme = scheme,
         shapes = ExpressiveShapes,
         typography = typography,
+        motionScheme = rememberExpressiveMotionScheme(),
         content = content,
     )
 }
@@ -143,7 +149,17 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         setContent {
-            AmoledTheme { Surface(Modifier.fillMaxSize()) { App() } }
+            val prefs = remember { getSharedPreferences("ui", MODE_PRIVATE) }
+            var materialYou by remember { mutableStateOf(prefs.getBoolean("material_you", false)) }
+            fun toggleYou() {
+                materialYou = !materialYou
+                prefs.edit().putBoolean("material_you", materialYou).apply()
+            }
+            AmoledTheme(materialYou) {
+                Surface(Modifier.fillMaxSize()) {
+                    App(materialYou = materialYou, onToggleMaterialYou = ::toggleYou)
+                }
+            }
         }
     }
 }
@@ -243,6 +259,81 @@ private fun Dot(active: Boolean) {
     )
 }
 
+/** Material You dynamic-colour toggle chip. */
+@Composable
+private fun MaterialYouChip(active: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .clip(PillShape)
+            .background(
+                if (active) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceContainer
+            )
+            .border(
+                1.dp,
+                if (active) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant,
+                PillShape
+            )
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(PillShape)
+                .background(MaterialTheme.colorScheme.tertiary)
+        )
+        Text(
+            "Material You",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (active) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** Confirmation pill that springs in when a lock style is applied successfully. */
+@Composable
+private fun AppliedConfirmation(tick: Int) {
+    if (tick == 0) return
+    val scale = remember { Animatable(0.4f) }
+    val alpha = remember { Animatable(0f) }
+    LaunchedEffect(tick) {
+        scale.snapTo(0.4f); alpha.snapTo(0f)
+        launch { alpha.animateTo(1f, tween(180)) }
+        scale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, 320f))
+        delay(2400)
+        alpha.animateTo(0f, tween(260))
+        scale.animateTo(0.6f, tween(260))
+    }
+    Row(
+        Modifier
+            .graphicsLayer {
+                scaleX = scale.value; scaleY = scale.value; this.alpha = alpha.value
+            }
+            .clip(PillShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "✓",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
+        Text(
+            "Applied",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
+    }
+}
+
 @Composable
 private fun StatusPill(granted: Boolean) {
     Row(
@@ -273,7 +364,7 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-fun App() {
+fun App(materialYou: Boolean, onToggleMaterialYou: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val presets = remember { loadPresets(ctx) }
@@ -287,10 +378,12 @@ fun App() {
     var pairPort by remember { mutableStateOf("") }
     var pairCode by remember { mutableStateOf("") }
     var showSplash by remember { mutableStateOf(true) }
+    var appliedTick by remember { mutableStateOf(0) }
 
     fun refresh() { current = ClockSettings.read(ctx); granted = ClockSettings.canWrite(ctx) }
     fun report(r: Result<String>, ok: String) {
         status = r.fold({ ok }, { it.message ?: "Failed" })
+        if (r.isSuccess && ok.startsWith("Applied")) appliedTick++
         refresh()
     }
     fun runAdb(block: () -> Result<String>) {
@@ -334,8 +427,6 @@ fun App() {
         onDispose { finder.stop() }
     }
 
-    if (showSplash) SplashScreen { showSplash = false }
-
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier
@@ -361,7 +452,15 @@ fun App() {
                         fontStyle = FontStyle.Italic
                     )
                 )
-                Row(Modifier.padding(top = 2.dp)) { StatusPill(granted) }
+                Row(
+                    Modifier.padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusPill(granted)
+                    MaterialYouChip(materialYou, onToggleMaterialYou)
+                    AppliedConfirmation(appliedTick)
+                }
             }
         }
 
@@ -541,4 +640,7 @@ fun App() {
             }
         }
     }
+
+    // Splash draws last so it layers ON TOP of the grid until its curtain fades.
+    if (showSplash) SplashScreen { showSplash = false }
 }
