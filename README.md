@@ -1,8 +1,4 @@
-# Lock Clock Switcher
-
-## Build on GitHub
-Push to GitHub. The "Build APK" workflow runs on every push (or run it by hand from the Actions tab).
-Download the APK from the run's Artifacts, or push a tag like `v1.0` to get it attached to a Release.
+[![Get it on Orion Store](https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png)](https://rookieenough.github.io/Orion-Data/app/?id=lockclockswitcher)
 
 ## First-time setup on the phone (no computer)
 1. Install the APK and open it.
